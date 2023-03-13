@@ -11,12 +11,14 @@ def get_distances_from_initiation(simulation_folder, simulation):
     dist_frt_1 = 0.0
 
     for locations in front_locations:
-        dist_frt_0 += get_arc_len(prev_front_0, locations[2])
-        dist_frt_1 += get_arc_len(prev_front_1, locations[3])
+        dist_frt_0 += get_arc_len(prev_front_0, locations[2]) 
         if get_arc_len(prev_front_0, locations[2]) > .04:
-            dist_frt_1 -= get_arc_len(prev_front_1, locations[3])
+            dist_frt_0 -= get_arc_len(prev_front_0, locations[2])
+            locations[3]=locations[2]
             locations[2]= prev_front_0
             print('happened 0')
+
+        dist_frt_1 += get_arc_len(prev_front_1, locations[3])
         if get_arc_len(prev_front_1, locations[3]) > .04: # if front 2 ends it will insert a random previous startin point, this changes that entry to the previous entry.
             dist_frt_1 -= get_arc_len(prev_front_1, locations[3]) 
             locations[3]=prev_front_1
