@@ -64,25 +64,25 @@ def print_and_log(string):
 #if (os.path.isfile('Kink_Extension_Model.py') == False):
 #    copyfile( ABAFRANK_LIB_PATH + '/Kink_Extension_Model.py', str(os.getcwd()) + '/Kink_Extension_Model.py' )
 #assert(os.path.isfile('Kink_Extension_Model.py'))
-
+Name='Mpas'
 
 def Open_fdb ():
-    f3d.OpenFdbModel(file_name= 'orthotropicfranc3d1.fdb',orig_mesh_file='orthotropicfranc3d_LOCAL.inp',
-        global_file= 'orthotropicfranc3d_GLOBAL.inp' ,mesh_file= 'orthotropicfranc3d1.inp',
-        resp_file= 'orthotropicfranc3d_full.dtp')
+    f3d.OpenFdbModel(file_name= Name +'.fdb' ,orig_mesh_file=Name + '_LOCAL.inp',
+        global_file= Name + '_GLOBAL.inp' ,mesh_file= Name + '.inp',
+        resp_file= Name + '_full.dtp')
 
 
 def Write_INP ():
     #[name,Simulation_Step,U_I] = args
     f3d.RunAnalysis(
         model_type='ABAQUS',
-        file_name='orthotropicfranc3d_full.fdb',
+        file_name=Name + '_full.fdb',
         flags=['NO_WRITE_TEMP','TRANSFER_BC','NO_CFACE_TRACT','CFACE_CNTCT','FILE_ONLY','MID_SIDE'],
         merge_tol=0.0001,
         connection_type='CONSTRAIN',
         executable=abaqus_bat_bin,
-        command=abaqus_bat_bin + ' job=orthotropicfranc3d_full -interactive -analysis ',
-        global_model= 'orthotropicfranc3d_GLOBAL.inp' ,
+        command=abaqus_bat_bin + ' job=' + Name +'_full -interactive -analysis ',
+        global_model= Name + '_GLOBAL.inp' ,
         merge_surf_labels=[Local_Merge_Set],
         global_surf_labels=[Global_Merge_Set],
         locglob_constraint_adjust=False,
@@ -95,7 +95,7 @@ def Write_INP ():
         crack_contact_tied=False,
         crack_contact_adjust=0.1)
 
-filename = 'orthotropicfranc3d_original.frt'
+filename = Name + '_original.frt'
 NumFronts = 1
 
 def writeFrt():
@@ -133,11 +133,11 @@ def writeFrt():
 [VX, VY, VZ, name , COORD] = Read_Initial_Velocity()
 
 # Set filenames
-local_inp_file = name + '_LOCAL.inp'
-global_inp_file = name + '_GLOBAL.inp'
-base_name = name
+local_inp_file = Name + '_LOCAL.inp'
+global_inp_file = Name + '_GLOBAL.inp'
+base_name = Name
 original_file_crk = base_name + '_original.crk'
-original_file_frt = 'orthotropicfranc3d_original.frt'
+original_file_frt = Name + '_original.frt'
 
 # Start an instance of F3D
 f3d = PyF3D.F3DApp()
@@ -200,13 +200,13 @@ for front_ in range(1): # SimDict['Edge']): # Loop through each crack fronts
                
     # Calculate kink angle using the crack front point with median K_equivalent
     # Read SIF data along the front
-    FN ='orthotropicfranc3d.sif' #SimDict['NAME'] + '_Front_' + str(front_) + '_Stp' + str(SimDict['Current_Step']+Step_increment-1) + '_UCI ' + str(SimDict['Unstable_iter']) + '.sif'
+    FN =Name + '.sif' #SimDict['NAME'] + '_Front_' + str(front_) + '_Stp' + str(SimDict['Current_Step']+Step_increment-1) + '_UCI ' + str(SimDict['Unstable_iter']) + '.sif'
     f3d.WriteSif(file_name= FN , front_id = front_ , flags=['COMMA', 'KI' , 'KII' , 'KIII' , 'AXES'],
         sif_method='DISP_CORR', do_crack_face_contact=False)
     [K1,K2,K3,Front_Axes] = Parse_SIF (FN)
 
     #Writes the front location file to be able to compare front locations later
-    FrontLocName = 'Location_of_Front_orthotropicfranc3d.sif' #SimDict['NAME'] + 'Location_of_Front_' + str(front_) + '_Stp' + str(SimDict['Current_Step']+Step_increment-1) + '_UCI ' + str(SimDict['Unstable_iter']) + '.sif'
+    FrontLocName = 'Location_of_Front_'+ Name +'.sif' #SimDict['NAME'] + 'Location_of_Front_' + str(front_) + '_Stp' + str(SimDict['Current_Step']+Step_increment-1) + '_UCI ' + str(SimDict['Unstable_iter']) + '.sif'
     delete_if_exists([FrontLocName])
     f3d.WriteCOD(file_name = FrontLocName, front_id = int(front_), flags=['COMMA','CRD'])
 
@@ -377,7 +377,7 @@ for front_ in range(1): # SimDict['Edge']): # Loop through each crack fronts
         #print_and_log('##############################                 FRANC 3D: ' + 'On initiation site ' + str(SimDict['Crack_Lookup'][front_]) +' front ' + str(front_) + ': ')
         #print_and_log('##############################                 FRANC 3D: Kink angle on step '+str(SimDict['Current_Step']+Step_increment-1)+ ' UCI ' + str(SimDict['Unstable_iter']) + ' is: '+str(np.degrees(Kink_angle))+' degrees.\n')
 
-        Top_point = fronts[top_surface_index] + 1.* kink#median_extension * kink #TODO BJORN extension length
+        Top_point = fronts[top_surface_index] + 1.* kink #median_extension * kink #TODO BJORN extension length
 
         #if ( Normal_Method == 1 ):
         Local_Normal = Normalize([0.,0.,1.])    #Get_Normal( Top_point , old_front ) # Compute surface normal on this point
@@ -401,13 +401,47 @@ for front_ in range(1): # SimDict['Edge']): # Loop through each crack fronts
         Front_Mult.append(1) # 1 means to propagate this front
 
     else: # Meaning crack growth on this front is not going to occur in this step
-        #print_and_log('##############################                 FRANC 3D: On initiation site ' + str(SimDict['Crack_Lookup'][front_]) + ' front ' + str(front_) + ', no crack growth occurred in this step.')
-        # Assign kink angle
-        Kink_angle = np.zeros(num_pts[front_])
-        # Assign extension
-        Extension = np.zeros(num_pts[front_])
+        ##print_and_log('##############################                 FRANC 3D: On initiation site ' + str(SimDict['Crack_Lookup'][front_]) + ' front ' + str(front_) + ', no crack growth occurred in this step.')
+        ## Assign kink angle
+        #Kink_angle = np.zeros(num_pts[front_])
+        ## Assign extension
+        #Extension = np.zeros(num_pts[front_])
+        ## Assign front multiplier
+        ##Front_Mult.append(0) # 0 means do not propagate this front
+        #Front_Mult.append(1) # 1
+        node_index = np.argmax(Overall_max_K_resolved) # Use the nodal location where the resolved K1 is max
+        kink = Local_Y*m.sin(Front_Kink_Angle[node_index]) + Local_X*m.cos(Front_Kink_Angle[node_index])
+        Kink_angle = Front_Kink_Angle[node_index]
+        #print_and_log("KINK ANGLE NODE CHOSEN = " + str(node_index)) #TODO: trying k_diff new code
+        #print_and_log("KINK ANGLE K_DIFF CHOSEN = " + str(np.max(Overall_max_K_resolved))) #TODO: trying k_diff new code
+        #print_and_log("MAX K_DIFF FOR ALL KINK ANGLES = " + str(Overall_max_K_resolved)) #TODO: trying k_diff new code
+        #print_and_log('##############################                 FRANC 3D: ' + 'On initiation site ' + str(SimDict['Crack_Lookup'][front_]) +' front ' + str(front_) + ': ')
+        #print_and_log('##############################                 FRANC 3D: Kink angle on step '+str(SimDict['Current_Step']+Step_increment-1)+ ' UCI ' + str(SimDict['Unstable_iter']) + ' is: '+str(np.degrees(Kink_angle))+' degrees.\n')
+
+        Top_point = fronts[top_surface_index] + 1.* kink #median_extension * kink #TODO BJORN extension length
+
+        #if ( Normal_Method == 1 ):
+        Local_Normal = Normalize([0.,0.,1.])    #Get_Normal( Top_point , old_front ) # Compute surface normal on this point
+        #else:
+        #    Local_Normal = Normalize(old_front)
+
+        # Calculate crack front extensions
+        Extension,Kink_angle = [] , []
+        for N in range( num_pts[front_] ):
+            Local_Y = Front_Axes[N][1] # Along the direction of crack advancement 
+            Local_Z = Front_Axes[N][2] # Along the crack axis, outward
+            Lambda = np.dot( (np.array(fronts[N])-np.array(Top_point)) , Local_Z ) / np.dot( Local_Normal , Local_Z )
+            v = np.array(Top_point)-np.array(fronts[N]) + Lambda * Local_Normal
+            Extension.append( np.linalg.norm(v) )
+            Kink_angle.append( np.pi/2.0 - np.arccos( np.dot(Normalize(v) , Local_Y ) )  )
+
+        # Update crack length history
+        #SimDict['crack_length'][ SimDict['Crack_Lookup'][front_] ].append( curr_crack_length + np.mean(Extension) )
+
         # Assign front multiplier
-        Front_Mult.append(0) # 0 means do not propagate this front
+        Front_Mult.append(1) # 1 means to propagate this front
+
+
 
     # Store kink angle and extension information
     KINK.append(Kink_angle)
@@ -415,7 +449,7 @@ for front_ in range(1): # SimDict['Edge']): # Loop through each crack fronts
 
 #TODO BJORN BELOW THIS:)
 # Write the front files for all fronts
-new_name = 'orthotropicfranc3d_MAYYBE_DONE'
+new_name = Name + '_MAYYBE_DONE'
 for numbering in range(1):
     delete_if_exists(['Front_'+str(numbering)+'.txt'])
     F=open('Front_'+str(numbering)+'.txt','w')
@@ -473,9 +507,9 @@ smoothing_method , extrapo , rad , Mult,Step_increment, Meshing_Strategy, mesh_h
 F.close()
 
 # Set filenames
-local_inp_file = 'orthotropicfranc3d_LOCAL.inp'
-global_inp_file = 'orthotropicfranc3d_GLOBAL.inp'
-base_name = 'orthotropicfranc3d'
+local_inp_file = Name + '_LOCAL.inp'
+global_inp_file = Name + '_GLOBAL.inp'
+base_name = Name
 new_file_crk = base_name + '_Modified.crk'
 
 # Start an instance of F3D
@@ -483,11 +517,11 @@ f3d = PyF3D.F3DApp()
 
 # Open current step model
 f3d.OpenFdbModel(
-    file_name= 'orthotropicfranc3d1.fdb',
+    file_name= Name + '.fdb',
     orig_mesh_file=local_inp_file,
     global_file=global_inp_file,
-    mesh_file= 'orthotropicfranc3d1.inp',
-    resp_file= 'orthotropicfranc3d_full.dtp')
+    mesh_file= Name + '.inp',
+    resp_file= Name + '_full.dtp')
 # Change F3D settings
 
 # Using Abaqus to mesh the modified crack
@@ -528,7 +562,7 @@ f3d.GrowCrack(
     file_name=new_file_crk)
 
 # Save the meshed model
-f3d.SaveFdbModel(file_name = 'orthotropicfranc3d1_completed.fdb',
-    mesh_file_name = 'orthotropicfranc3d1_mesh_completed.cdb',
-    rslt_file_name = 'orthotropicfranc3d1_rslt_completed.dtp',
+f3d.SaveFdbModel(file_name = Name + '_completed.fdb',
+    mesh_file_name = Name + '_mesh_completed.cdb',
+    rslt_file_name = Name + '_rslt_completed.dtp',
     analysis_code = 'ABAQUS')
